@@ -92,7 +92,7 @@ class SignIn:
         return False
     
 
-    async def is_authenticated(self) -> bool:
+    async def _is_authenticated(self) -> bool:
         for locator in self.config.SIGN_IN_VERIFICATION:
             try:
                 await self.page.wait_for_selector(locator, timeout=self.config.PAGE_LOAD_TIMEOUT)
