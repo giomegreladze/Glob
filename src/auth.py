@@ -9,8 +9,8 @@ class SignIn:
 
 
     async def auth(self) -> bool:
-        for i in range(3):
-            logging.info(f'-- Sign in attempt {i+1}/3')
+        for i in range(self.config.RETRIES):
+            logging.info(f'-- Sign in attempt {i+1}/{self.config.RETRIES}')
             try:
                 await self.page.goto(self.config.URL, wait_until='domcontentloaded', timeout=self.config.PAGE_LOAD_TIMEOUT)
                 logging.info(f'-- Navigated to {self.config.URL} successfully.')
@@ -21,7 +21,7 @@ class SignIn:
                     continue
                 if not await self._click_sign_in():
                     continue
-                if await self.is_authenticated():
+                if await self._is_authenticated():
                     logging.info('-- Sign in Successful')
                     return True
             except TimeoutError:
@@ -31,6 +31,21 @@ class SignIn:
         logging.error('-- All sign in attempts failed.')
         return False
 
+    
+    async def _fill_fields(self, locators: list, value: str, field_name: str) -> bool:
+        for locator in locators:
+            try:
+                await locator.wait_for(state='visible', timeout=self.config.DEFAULT_TIMEOUT)
+                await locator.fill(value)
+                logging.info(f'-- {field_name} filled successfully.')
+                return True
+            except TimeoutError:
+                logging.warning(f'-- Error finding {field_name} field {locator}. Retrying...')
+            except Error:
+                logging.warning(f'-- Error filling {field_name} field {locator}. Retrying...')
+        logging.error(f'-- {field_name} field not found.')
+        return False
+    
 
     async def _fill_email(self, email: str) -> bool:
         email_locators = [
@@ -38,18 +53,7 @@ class SignIn:
             self.page.locator(self.config.USERNAME_FIELD_2),
             self.page.locator(self.config.USERNAME_FIELD_3),
         ]
-        for locator in email_locators:
-            try:
-                await locator.wait_for(state='visible', timeout=self.config.DEFAULT_TIMEOUT)
-                await locator.fill(email)
-                logging.info('-- Email field filled successfully.')
-                return True
-            except TimeoutError:
-                logging.warning(f'-- Trying next email locator... {locator}')
-            except Error:
-                logging.warning(f'-- Error filling email field.')
-        logging.error('-- Email field not found.')
-        return False
+        return await self._fill_fields(email_locators, email, "Email")
 
 
     async def _fill_password(self, password: str) -> bool:
@@ -58,25 +62,15 @@ class SignIn:
             self.page.locator(self.config.PASSWORD_FIELD_2),
             self.page.locator(self.config.PASSWORD_FIELD_3),
         ]
-        for locator in password_locators:
-            try:
-                await locator.wait_for(state='visible', timeout=self.config.DEFAULT_TIMEOUT)
-                await locator.fill(password)
-                logging.info('-- Password field filled successfully.')
-                return True
-            except TimeoutError:
-                logging.warning(f'-- Trying next password field {locator}. Retrying...')
-            except Error:
-                logging.warning(f'-- Error filling password field {locator}. Retrying...')
-        logging.error('-- Password field not found.')
-        return False
+
+        return await self._fill_fields(password_locators, password, "Password")
 
 
     async def _click_sign_in(self) -> bool:
         sign_in_locator = [
-            self.page.get_by_role(self.config.PASSWORD_FIELD_1),
-            self.page.locator(self.config.PASSWORD_FIELD_2),
-            self.page.locator(self.config.PASSWORD_FIELD_3),
+            self.page.locator(self.config.SIGN_IN_BUTTON_1),
+            self.page.locator(self.config.SIGN_IN_BUTTON_2),
+            self.page.locator(self.config.SIGN_IN_BUTTON_3),
         ]
         for locator in sign_in_locator:
             try:
@@ -85,7 +79,7 @@ class SignIn:
                 logging.info('-- Sign in button clicked successfully.')
                 return True
             except TimeoutError:
-                logging.warning(f'-- Trying next sign in button locator {locator}. Retrying...')
+                logging.warning(f'-- Error finding sign in button {locator}. Retrying...')
             except Error:
                 logging.warning(f'-- Error clicking sign in button {locator}. Retrying...')
         logging.error('-- Sign in button not found.')

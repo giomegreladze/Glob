@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
+    RETRIES = 3
+
     PAGE_LOAD_TIMEOUT = 20000
     DEFAULT_TIMEOUT = 10000
 
@@ -20,7 +22,7 @@ class Config:
     PASSWORD_FIELD_2 = 'input[type="password"]'
     PASSWORD_FIELD_3 = 'input[name="password"]'
 
-    SIGN_IN_BUTTON_1 = 'button:has-text("Sign In")'
+    SIGN_IN_BUTTON_1 = 'button span[class*="indicator-label"]'
     SIGN_IN_BUTTON_2 = 'button[type="submit"]'
     SIGN_IN_BUTTON_3 = 'button[class="btn btn-primary"]'    
 
