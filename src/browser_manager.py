@@ -6,7 +6,7 @@ class BrowserManager:
 
     async def __aenter__(self):
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=self.headless, slow_mo=1000)
+        self.browser = await self.playwright.chromium.launch(headless=self.headless, slow_mo=3000)
         self.context = await self.browser.new_context()
         self.page = await self.context.new_page()
         return self.page

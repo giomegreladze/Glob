@@ -28,4 +28,16 @@ class Config:
 
     SIGN_IN_VERIFICATION = ['ul[class*="nav nav-tabs"]', 'span[class*="menu-title"]', 'span[class*="menu-arrow"]']
 
-    # VIN_URL = 'https://app.glob.ge/cars?get_user_car=&search_vin={****}&start_buy_date=&end_buy_date=&make_id=&model=&year=&search_container=&invoice_phone=&invoice_name='
+    VIN_URL = 'https://app.glob.ge/cars?get_user_car=&search_vin={****}&start_buy_date=&end_buy_date=&make_id=&model=&year=&search_container=&invoice_phone=&invoice_name='
+
+    DEALER_LOCATOR = [
+        'a[href*="https://app.glob.ge/users/payments/"]',
+        'a[href*="/users/payments/"]',
+        'a[href*="/users/"]',
+    ]
+
+    DEALER_PAYMENT_PAGE_VERIFICATION = [
+        'li[class="nav-item mt-2"] a:has-text("Payments")', 
+        'li[class="nav-item mt-2"] a:has-text("Fees")', 
+        'li[class="nav-item mt-2"] a:has-text("Cars")'
+        ]
