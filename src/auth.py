@@ -1,28 +1,34 @@
 import logging
 from playwright.async_api import Page, TimeoutError, Error
-from src.config import Config
+from src.config import Settings
+
 
 class SignIn:
-    def __init__(self, page: Page, config: type[Config] = Config) -> None:
+    def __init__(self, page: Page, settings: type[Settings] = Settings) -> None:
         self.page = page
-        self.config = config
+        self.settings = settings
+        self.urls = settings.urls
+        self.credentials = settings.credentials
+        self.locators = settings.locators
+        self.config = settings.general_settings
 
 
     async def auth(self) -> bool:
-        for i in range(self.config.RETRIES):
-            logging.info(f'-- Sign in attempt {i+1}/{self.config.RETRIES}')
+        for i in range(self.config.retries):
+            logging.info(f'-- Sign in attempt {i+1}/{self.config.retries}')
             try:
-                await self.page.goto(self.config.URL, wait_until='domcontentloaded', timeout=self.config.PAGE_LOAD_TIMEOUT)
-                logging.info(f'-- Navigated to {self.config.URL} successfully.')
+                await self.page.goto(self.urls.home_url, wait_until='domcontentloaded', timeout=self.config.page_load_timeout)
+                logging.info(f'-- Navigated to {self.urls.home_url} successfully.')
 
-                if not await self._fill_email(self.config.USERNAME):
+                if not await self._fill_email(self.credentials.username):
                     continue
-                if not await self._fill_password(self.config.PASSWORD):
+                if not await self._fill_password(self.credentials.password):
                     continue
                 if not await self._click_sign_in():
                     continue
                 if await self._is_authenticated():
                     logging.info('-- Sign in Successful')
+                    await self._close_popups()
                     return True
             except TimeoutError:
                 logging.error(f'-- Sign in attempt {i+1} failed. Retrying...')
@@ -35,7 +41,7 @@ class SignIn:
     async def _fill_fields(self, locators: list, value: str, field_name: str) -> bool:
         for locator in locators:
             try:
-                await locator.wait_for(state='visible', timeout=self.config.DEFAULT_TIMEOUT)
+                await locator.wait_for(state='visible', timeout=self.config.default_timeout)
                 await locator.fill(value)
                 logging.info(f'-- {field_name} filled successfully.')
                 return True
@@ -49,18 +55,18 @@ class SignIn:
 
     async def _fill_email(self, email: str) -> bool:
         email_locators = [
-            self.page.get_by_placeholder(self.config.USERNAME_FIELD_1),
-            self.page.locator(self.config.USERNAME_FIELD_2),
-            self.page.locator(self.config.USERNAME_FIELD_3),
+            self.page.get_by_placeholder(self.locators.username_field_1),
+            self.page.locator(self.locators.username_field_2),
+            self.page.locator(self.locators.username_field_3),
         ]
         return await self._fill_fields(email_locators, email, "Email")
 
 
     async def _fill_password(self, password: str) -> bool:
         password_locators = [
-            self.page.get_by_placeholder(self.config.PASSWORD_FIELD_1),
-            self.page.locator(self.config.PASSWORD_FIELD_2),
-            self.page.locator(self.config.PASSWORD_FIELD_3),
+            self.page.get_by_placeholder(self.locators.password_field_1),
+            self.page.locator(self.locators.password_field_2),
+            self.page.locator(self.locators.password_field_3),
         ]
 
         return await self._fill_fields(password_locators, password, "Password")
@@ -68,13 +74,13 @@ class SignIn:
 
     async def _click_sign_in(self) -> bool:
         sign_in_locator = [
-            self.page.locator(self.config.SIGN_IN_BUTTON_1),
-            self.page.locator(self.config.SIGN_IN_BUTTON_2),
-            self.page.locator(self.config.SIGN_IN_BUTTON_3),
+            self.page.locator(self.locators.sign_in_button_1),
+            self.page.locator(self.locators.sign_in_button_2),
+            self.page.locator(self.locators.sign_in_button_3),
         ]
         for locator in sign_in_locator:
             try:
-                await locator.wait_for(state='visible', timeout=self.config.DEFAULT_TIMEOUT)
+                await locator.wait_for(state='visible', timeout=self.config.default_timeout)
                 await locator.click()
                 logging.info('-- Sign in button clicked successfully.')
                 return True
@@ -86,10 +92,24 @@ class SignIn:
         return False
     
 
-    async def _is_authenticated(self) -> bool:
-        for locator in self.config.SIGN_IN_VERIFICATION:
+    async def _close_popups(self) -> None:
+        """Close any pop-ups that may appear after sign-in."""
+        for locator in self.locators.popup_close_button:
             try:
-                await self.page.wait_for_selector(locator, timeout=self.config.PAGE_LOAD_TIMEOUT)
+                await self.page.wait_for_selector(locator, timeout=self.config.popup_timeout)
+                await self.page.locator(locator).click()
+                logging.info(f'-- Closed pop-up with locator: {locator}')
+                return None
+            except TimeoutError:
+                continue
+        logging.info('-- No pop-ups to close.')
+        return None
+    
+
+    async def _is_authenticated(self) -> bool:
+        for locator in self.locators.sign_in_verification:
+            try:
+                await self.page.wait_for_selector(locator, timeout=self.config.page_load_timeout)
                 return True
             except TimeoutError:
                 logging.warning(f'-- Verification locator "{locator}" not found. Trying next...')

@@ -3,13 +3,17 @@ from playwright.async_api import Error, TimeoutError
 import logging
 import asyncio
 
-from src.config import Config
+from src.config import Settings
 
 
 class Payments:
-    def __init__(self, page, config: type[Config] = Config) -> None:
+    def __init__(self, page, settings: type[Settings] = Settings) -> None:
         self.page = page
-        self.config = config
+        self.settings = settings
+        self.urls = settings.urls
+        self.credentials = settings.credentials
+        self.locators = settings.locators
+        self.config = settings.general_settings
 
     
     async def navigate_to_payments_page(self, vin: str) -> bool:
@@ -23,25 +27,25 @@ class Payments:
 
     async def find_vin(self, vin: str) -> bool:
         """Filter website by VIN."""
-        for i in range(self.config.RETRIES):
-            logging.info(f'-- Finding VIN attempt {i+1}/{self.config.RETRIES}')
-            vin_url = self.config.VIN_URL.replace('{****}', vin)
+        for i in range(self.config.retries):
+            logging.info(f'-- Finding VIN attempt {i+1}/{self.config.retries}')
+            vin_url = self.urls.vin_url.replace('{****}', vin)
             try:
-                await self.page.goto(vin_url, wait_until='domcontentloaded', timeout=self.config.PAGE_LOAD_TIMEOUT)
+                await self.page.goto(vin_url, wait_until='domcontentloaded', timeout=self.config.page_load_timeout)
                 return True
             except Error:
-                logging.error(f'Page did not load in {self.config.PAGE_LOAD_TIMEOUT} ms for VIN: {vin}. Retrying')
+                logging.error(f'Page did not load in {self.config.page_load_timeout} ms for VIN: {vin}. Retrying')
         return False
         
 
     async def navigate_to_dealer_payments(self) -> bool:
         """Navigate to Dealer Payments page after filtering by VIN."""
-        dealer_locators = [self.page.locator(locator) for locator in self.config.DEALER_LOCATOR]
+        dealer_locators = [self.page.locator(locator) for locator in self.locators.dealer_locator]
 
         dealer_url = ''
         for locator in dealer_locators:
             try:
-                await locator.wait_for(state='visible', timeout=self.config.DEFAULT_TIMEOUT)
+                await locator.wait_for(state='visible', timeout=self.config.default_timeout)
                 dealer_url = await locator.get_attribute('href')
                 break
             except TimeoutError:
@@ -67,9 +71,9 @@ class Payments:
 
     async def verify_dealer_payments_page(self) -> bool:
         """Verify that we are on the Dealer Payments page."""
-        for locator in self.config.DEALER_PAYMENT_PAGE_VERIFICATION:
+        for locator in self.locators.dealer_payment_page_verification:
             try:
-                await self.page.wait_for_selector(locator, state='visible', timeout=self.config.DEFAULT_TIMEOUT)
+                await self.page.wait_for_selector(locator, state='visible', timeout=self.config.default_timeout)
                 return True
             except TimeoutError:
                 logging.error(f'-- Dealer Payments page verification failed on locator {locator}. Retrying...')
