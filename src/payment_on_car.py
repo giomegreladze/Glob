@@ -58,7 +58,6 @@ class Payments:
             verification = await self.verify_dealer_payments_page()
             if verification:
                 logging.info('-- Successfully navigated to Dealer Payments page.')
-                await asyncio.sleep(3)
                 return True
             else:
                 logging.error('-- Dealer Payments page verification failed after navigation.')
@@ -74,6 +73,7 @@ class Payments:
         for locator in self.locators.dealer_payment_page_verification:
             try:
                 await self.page.wait_for_selector(locator, state='visible', timeout=self.config.default_timeout)
+                await asyncio.sleep(3)
                 return True
             except TimeoutError:
                 logging.error(f'-- Dealer Payments page verification failed on locator {locator}. Retrying...')

@@ -1,8 +1,6 @@
 import logging
 import asyncio
 
-from playwright.async_api import async_playwright
-
 from src.browser_manager import BrowserManager
 from src.auth import SignIn
 from src.payment_on_car import Payments
